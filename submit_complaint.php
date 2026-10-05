@@ -1,6 +1,7 @@
 <?php
 session_start();
 include 'db.php';
+require_once 'admin/logger.php';
 
 // ============================================
 // PHPMailer Setup
@@ -41,6 +42,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         
         if ($stmt->execute()) {
             $complaint_id = $stmt->insert_id;
+
+            log_activity($conn, 'complaint', 'submit', 'success', 
+                "Complaint #{$complaint_id} submitted", (string)$complaint_id, 
+                ['subject' => $subject, 'email' => $email]);
+
             $stmt->close();
             
             // ============================================
