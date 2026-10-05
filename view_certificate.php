@@ -58,6 +58,8 @@ $is_admin = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] 
         .cert-toolbar .actions .btn-download { background: #17a2b8; color: white; }
         .cert-toolbar .actions .btn-download:hover { background: #138496; transform: scale(1.02); color: white; }
         .cert-toolbar .actions .btn-request { background: #ffc107; color: #856404; }
+        .cert-toolbar .actions .btn-request { display: inline-flex; align-items: center; justify-content: center; gap: 4px; width: 120px; max-width: 100%; min-width: 0; white-space: normal; line-height: 1.25; text-align: center; }
+        .cert-toolbar .actions .btn-request span:last-child { min-width: 0; }
         .cert-toolbar .actions .btn-request:hover { background: #e0a800; transform: scale(1.02); color: #856404; }
         .cert-toolbar .actions .btn-back { background: #6c757d; color: white; }
         .cert-toolbar .actions .btn-back:hover { background: #5a6268; transform: scale(1.02); color: white; }
@@ -171,7 +173,7 @@ $is_admin = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] 
             <?php if (!$is_admin && isset($cert['cert_type']) && $cert['cert_type'] == 'physical'): ?>
                 <a href="request_physical.php?serialNum=<?php echo urlencode($cert['serialNum']); ?>" 
                    class="btn btn-request">
-                    <span class="glyphicon glyphicon-send"></span> Request Physical
+                    <span class="glyphicon glyphicon-send"></span><span>Request Physical</span>
                 </a>
             <?php endif; ?>
             
