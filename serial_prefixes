@@ -1,0 +1,21 @@
+<?php
+/**
+ * serial_prefixes.php
+ * 
+ * Maps certificate serial-number prefixes to participant type.
+ * 
+ *   1 = insider (Jabatan Perikanan Sabah staff)
+ *   0 = public / non-insider
+ * 
+ * Matching is case-insensitive and only looks at the prefix
+ * before the first "-" (or before the first digit if no dash).
+ */
+
+return [
+    'JPS'  => 1,   // Jabatan Perikanan Sabah — insider
+    'PN'   => 0,   // Public — non-insider
+    // Add more as needed:
+    // 'BPMI' => 1,
+    // 'HQ'   => 1,
+    // 'EXT'  => 0,
+];
