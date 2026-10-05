@@ -1,6 +1,7 @@
 <?php
 session_start();
 include 'db.php';
+require_once 'admin/logger.php';
 
 $serialNum = isset($_GET['serialNum']) ? trim($_GET['serialNum']) : '';
 
@@ -56,6 +57,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$existing_request) {
         $stmt->bind_param("sssssss", $serialNum, $cert['nokp'], $name, $email, $phone, $address, $reason);
         
         if ($stmt->execute()) {
+
+            log_activity($conn, 'physical_request', 'submit', 'success', 
+                "Physical request for " . $cert['serialNum'], $cert['serialNum'], 
+                ['nokp' => $cert['nokp'], 'address_given' => !empty($address)]);
+
             $stmt->close();
             header('Location: request_physical.php?serialNum=' . urlencode($serialNum) . '&success=1');
             exit;
@@ -215,6 +221,7 @@ if (isset($_GET['success'])) {
             <div class="notice-box">
                 <strong><span class="glyphicon glyphicon-info-sign"></span> Please note:</strong>
                 Physical certificates are printed and mailed by our admin team. Make sure your contact and mailing details are correct.
+                If you want to retrieve your certificate at our office, please write so in the mailing address field.
             </div>
             
             <form method="POST">
