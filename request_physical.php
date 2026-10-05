@@ -3,6 +3,15 @@ session_start();
 include 'db.php';
 require_once 'admin/logger.php';
 
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
+require 'PHPMailer/PHPMailer.php';
+require 'PHPMailer/SMTP.php';
+require 'PHPMailer/Exception.php';
+
+$admin_email = 'stazeros599@gmail.com';
+
 $serialNum = isset($_GET['serialNum']) ? trim($_GET['serialNum']) : '';
 
 if (empty($serialNum)) {
@@ -57,12 +66,107 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$existing_request) {
         $stmt->bind_param("sssssss", $serialNum, $cert['nokp'], $name, $email, $phone, $address, $reason);
         
         if ($stmt->execute()) {
+            $request_id = $stmt->insert_id;
 
             log_activity($conn, 'physical_request', 'submit', 'success', 
                 "Physical request for " . $cert['serialNum'], $cert['serialNum'], 
-                ['nokp' => $cert['nokp'], 'address_given' => !empty($address)]);
+                ['nokp' => $cert['nokp'], 'address_given' => !empty($address), 'request_id' => $request_id]);
 
             $stmt->close();
+
+            $email_subject = "New Physical Certificate Request #{$request_id}: {$cert['course_name']}";
+            $email_body = "
+            <html>
+            <head>
+                <style>
+                    body { font-family: Arial, sans-serif; color: #333; }
+                    .container { max-width: 650px; margin: 0 auto; padding: 20px; }
+                    .header { background: #1a3c5e; color: white; padding: 15px; border-radius: 8px 8px 0 0; }
+                    .body { background: #f8f9fa; padding: 20px; border-radius: 0 0 8px 8px; }
+                    .field { margin-bottom: 15px; }
+                    .field-label { font-weight: bold; color: #1a3c5e; font-size: 12px; text-transform: uppercase; }
+                    .field-value { margin-top: 3px; padding: 8px 12px; background: white; border-radius: 4px; border-left: 3px solid #c9a959; }
+                    .message { background: white; padding: 15px; border-radius: 4px; border-left: 3px solid #1a3c5e; white-space: pre-wrap; }
+                </style>
+            </head>
+            <body>
+                <div class='container'>
+                    <div class='header'>
+                        <h2 style='margin: 0;'>📬 New Physical Certificate Request</h2>
+                        <p style='margin: 5px 0 0; opacity: 0.8;'>Request ID: #{$request_id}</p>
+                    </div>
+                    <div class='body'>
+                        <div class='field'>
+                            <div class='field-label'>Applicant Name</div>
+                            <div class='field-value'>" . htmlspecialchars($name) . "</div>
+                        </div>
+                        <div class='field'>
+                            <div class='field-label'>Email</div>
+                            <div class='field-value'>" . htmlspecialchars($email) . "</div>
+                        </div>
+                        <div class='field'>
+                            <div class='field-label'>Phone</div>
+                            <div class='field-value'>" . htmlspecialchars($phone) . "</div>
+                        </div>
+                        <div class='field'>
+                            <div class='field-label'>IC Number</div>
+                            <div class='field-value'>" . htmlspecialchars($cert['nokp']) . "</div>
+                        </div>
+                        <div class='field'>
+                            <div class='field-label'>Certificate Serial Number</div>
+                            <div class='field-value'>" . htmlspecialchars($cert['serialNum']) . "</div>
+                        </div>
+                        <div class='field'>
+                            <div class='field-label'>Course</div>
+                            <div class='field-value'>" . htmlspecialchars($cert['course_name']) . "</div>
+                        </div>
+                        <div class='field'>
+                            <div class='field-label'>Mailing Address</div>
+                            <div class='field-value'>" . htmlspecialchars($address) . "</div>
+                        </div>
+                        <div class='field'>
+                            <div class='field-label'>Reason</div>
+                            <div class='message'>" . (!empty($reason) ? htmlspecialchars($reason) : 'Not provided') . "</div>
+                        </div>
+                        <p style='margin-top: 20px; font-size: 12px; color: #888;'>
+                            Submitted on " . date('d F Y, H:i') . "
+                        </p>
+                        <p style='margin-top: 15px; padding: 10px; background: #e8f0fe; border-radius: 4px; font-size: 13px;'>
+                            <strong>💡 To review this request, log in to:</strong><br>
+                            <a href='http://10.73.31.89:8000/admin/physical_requests.php'>Admin Panel → Physical Requests</a>
+                        </p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            ";
+
+            $mail = new PHPMailer(true);
+
+            try {
+                $mail->isSMTP();
+                $mail->Host       = 'smtp.gmail.com';
+                $mail->SMTPAuth   = true;
+                $mail->Username   = 'stazeros599@gmail.com';
+                $mail->Password   = 'khrkmjfxtflldfni';
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                $mail->Port       = 587;
+                $mail->CharSet    = 'UTF-8';
+
+                $mail->setFrom('stazeros599@gmail.com', 'eCert BPMI');
+                $mail->addAddress($admin_email);
+                $mail->addReplyTo($email, $name);
+
+                $mail->isHTML(true);
+                $mail->Subject = $email_subject;
+                $mail->Body    = $email_body;
+                $mail->AltBody = "New physical certificate request from {$name} ({$email}) for certificate {$cert['serialNum']}. Mailing address: {$address}";
+
+                $mail->send();
+            } catch (Exception $e) {
+                error_log('Physical certificate request email failed: ' . $mail->ErrorInfo);
+            }
+
             header('Location: request_physical.php?serialNum=' . urlencode($serialNum) . '&success=1');
             exit;
         } else {
