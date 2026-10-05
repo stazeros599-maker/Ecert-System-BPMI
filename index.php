@@ -1,6 +1,7 @@
-<!-- To run server: "C:\laragon\bin\php\php-8.3.33-Win32-vs16-x64\php.exe" -S localhost:8000 -->
+<!-- To run server: "C:\laragon\bin\php\php-8.3.33-Win32-vs16-x64\php.exe" -S 0.0.0.0:8000 -->
 <?php
 include 'db.php';
+require_once 'admin/logger.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -487,6 +488,110 @@ include 'db.php';
                 width: 100%;
                 padding: 14px 20px;
             }
+
+            /* Public page mobile layout */
+            body {
+                overflow-x: hidden;
+            }
+            .page-overlay {
+                padding-top: 60px;
+                padding-bottom: 80px;
+            }
+            .navbar-brand {
+                font-size: 14px;
+                padding-left: 10px;
+                padding-right: 8px;
+            }
+            .navbar-brand img {
+                height: 36px !important;
+            }
+            .business-header {
+                padding: 35px 15px;
+            }
+            .business-header .tagline {
+                font-size: 22px;
+                line-height: 1.3;
+                margin-top: 8px;
+            }
+            .business-header p {
+                font-size: 13px;
+            }
+            .search-box {
+                padding: 16px;
+                margin-top: 20px;
+            }
+            .search-box .input-group {
+                display: block;
+            }
+            .search-box .input-group .form-control,
+            .search-box .input-group .input-group-btn,
+            .search-box .input-group .input-group-btn .btn {
+                display: block;
+                width: 100%;
+            }
+            .search-box .input-group .form-control {
+                border-radius: 4px;
+            }
+            .search-box .input-group .input-group-btn .btn {
+                margin-top: 8px;
+                border-radius: 4px;
+            }
+            .certificate-panel {
+                margin-top: 20px;
+            }
+            .certificate-panel .panel-heading {
+                padding: 12px 15px;
+                font-size: 16px;
+            }
+            .search-filter-bar {
+                padding: 12px;
+            }
+            .search-filter-bar form > div,
+            .search-filter-bar form > button,
+            .search-filter-bar form > a {
+                width: 100% !important;
+            }
+            .search-filter-bar .date-range-group {
+                display: grid !important;
+                grid-template-columns: 1fr;
+                gap: 6px !important;
+            }
+            .search-filter-bar .date-range-group input,
+            .search-filter-bar .date-range-group span {
+                width: 100% !important;
+            }
+            .search-filter-bar .date-range-group span {
+                display: none;
+            }
+            .search-filter-bar .btn {
+                margin: 0;
+            }
+            .certificate-table {
+                min-width: 680px;
+                font-size: 12px;
+            }
+            .certificate-table th,
+            .certificate-table td {
+                padding: 8px 6px;
+            }
+            .action-buttons .btn {
+                max-width: 105px;
+                min-height: 32px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 4px;
+            }
+            .complaint-section {
+                overflow: hidden;
+            }
+            .complaint-notice {
+                align-items: flex-start;
+            }
+            .admin-btn-container .btn-admin {
+                max-width: calc(100vw - 30px);
+                white-space: nowrap;
+            }
         }
         /* ============================================
         PUBLIC NOTICE
@@ -794,7 +899,7 @@ include 'db.php';
                                                     <?php if (isset($row['cert_type']) && $row['cert_type'] == 'physical'): ?>
                                                         <a href="request_physical.php?serialNum=<?php echo urlencode($row['serialNum']); ?>" 
                                                         class="btn btn-warning btn-sm">
-                                                            <span class="glyphicon glyphicon-send"></span> Request Physical
+                                                            <span class="glyphicon glyphicon-send"></span> Request
                                                         </a>
                                                     <?php endif; ?>
                                                     
@@ -818,6 +923,16 @@ include 'db.php';
                             </div>
                             <?php
                         }
+                        
+                        if ($result->num_rows > 0) {
+                            log_activity($conn, 'certificate', 'search', 'success', 
+                                "Found {$result->num_rows} certificates", $nokp, 
+                                ['search_term' => $nokp, 'results' => $result->num_rows]);
+                        } else {
+                            log_activity($conn, 'certificate', 'search', 'warning', 
+                                "No certificates found", $nokp, 
+                                ['search_term' => $nokp]);
+    }
                         if (isset($stmt)) $stmt->close();
                         
                     } else {
