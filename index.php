@@ -661,7 +661,7 @@ require_once 'admin/logger.php';
 
 <div class="page-overlay">
 
-    <!-- Navigation -->
+    <!-- Navigation temporarily disabled
     <nav class="navbar navbar-fixed-top">
         <div class="container">
             <div class="navbar-header">
@@ -694,6 +694,7 @@ require_once 'admin/logger.php';
             </div>
         </div>
     </nav>
+    -->
 
     <!-- Header -->
     <header class="business-header">
