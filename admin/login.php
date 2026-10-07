@@ -34,13 +34,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $_SESSION['admin_id'] = $admin['id'];
                 $_SESSION['admin_role'] = $admin['role'] ?? 'admin';
                 
-                // Log successful login
                 log_activity($conn, 'auth', 'login', 'success',
                     "User '{$admin['username']}' logged in as {$admin['role']}",
                     $admin['username'],
                     ['role' => $admin['role']]);
                 
-                // Route by role
                 if (($_SESSION['admin_role']) === 'developer') {
                     header('Location: developer/index.php');
                 } else {
@@ -79,242 +77,328 @@ $conn->close();
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+
+        html, body {
+            height: 100%;
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+        }
+
+        /* ============================================================
+           Background: forest image with a dark blue overlay
+           Replace the URL below with your own forest image if you
+           want a different scene.
+           ============================================================ */
         body {
-            background: linear-gradient(135deg, #1a3c5e 0%, #2a5f7a 100%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
             min-height: 100vh;
-            padding: 20px;
-            font-family: 'Segoe UI', Arial, sans-serif;
+            background:
+                linear-gradient(180deg, rgba(15,35,60,0.55) 0%, rgba(20,50,80,0.35) 40%, rgba(60,90,120,0.35) 100%),
+                url('../images/background.jpg')
+                center center / cover no-repeat fixed;
+            background-color: #0e2a44;
+            color: #fff;
+            overflow-x: hidden;
         }
-        
-        .login-container { width: 100%; max-width: 420px; }
-        
-        .login-box {
-            background: white;
-            padding: 40px 35px 30px;
-            border-radius: 12px;
-            box-shadow: 0 15px 50px rgba(0,0,0,0.4);
-        }
-        
-        .login-box .logo {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .login-box .logo .lock-icon {
-            font-size: 48px;
-            display: block;
-            margin-bottom: 10px;
-        }
-        
-        .login-box .logo h2 {
-            color: #1a3c5e;
-            margin: 0;
-            font-weight: 700;
-            font-size: 24px;
-        }
-        
-        .login-box .logo p {
-            color: #888;
-            margin: 5px 0 0;
-            font-size: 14px;
-        }
-        
-        .login-box .form-group { margin-bottom: 20px; }
-        
-        .login-box .form-group label {
-            font-weight: 600;
-            color: #555;
-            font-size: 14px;
-            display: block;
-            margin-bottom: 5px;
-        }
-        
-        .login-box .form-control {
-            height: 45px;
-            border-radius: 6px;
-            border: 2px solid #e1e5eb;
-            font-size: 14px;
-            padding: 0 15px;
-            width: 100%;
-        }
-        
-        .login-box .form-control:focus {
-            border-color: #1a3c5e;
-            box-shadow: 0 0 0 3px rgba(26, 60, 94, 0.1);
-            outline: none;
-        }
-        
-        .input-group { display: flex; width: 100%; position: relative; }
-        
-        .input-group-addon {
-            background: #f8f9fa;
-            border: 2px solid #e1e5eb;
-            border-right: none;
-            border-radius: 6px 0 0 6px;
-            padding: 0 12px;
-            display: flex;
-            align-items: center;
-            height: 45px;
-            min-width: 45px;
-            flex-shrink: 0;
-        }
-        
-        .input-group .form-control {
-            border-left: none;
-            border-radius: 0 6px 6px 0;
-            flex: 1;
-            min-width: 0;
-        }
-        
-        .input-group .form-control:focus { border-left: none; }
-        
-        .password-toggle {
-            position: absolute;
-            right: 0;
+
+        /* ============================================================
+           Top navigation bar
+           ============================================================ */
+        .top-nav {
+            position: fixed;
             top: 0;
-            height: 45px;
-            border: 2px solid #e1e5eb;
-            border-left: none;
-            border-radius: 0 6px 6px 0;
-            background: #f8f9fa;
-            color: #888;
-            padding: 0 15px;
-            cursor: pointer;
+            left: 0;
+            right: 0;
+            padding: 18px 40px;
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            font-size: 18px;
-            z-index: 10;
+            z-index: 100;
+            background: linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0) 100%);
         }
-        
-        .password-toggle:hover { background: #e9ecef; color: #1a3c5e; }
-        
-        .input-group .form-control.password-input {
-            border-right: none;
-            border-radius: 6px 0 0 6px;
-            padding-right: 45px;
-        }
-        
-        .btn-login {
-            width: 100%;
-            padding: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            background: #1a3c5e;
-            border: none;
-            border-radius: 6px;
-            color: white;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-login:hover {
-            background: #0f2a42;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(26, 60, 94, 0.3);
-        }
-        
-        .btn-login .glyphicon { margin-right: 5px; }
-        
-        .error {
-            color: #d9534f;
-            text-align: center;
-            margin-bottom: 15px;
-            padding: 10px;
-            background: #f8d7da;
-            border-radius: 6px;
-            border: 1px solid #f5c6cb;
-            font-size: 14px;
-        }
-        
-        .back-link {
-            text-align: center;
-            margin-top: 20px;
-            display: block;
-            color: #888;
-            font-size: 14px;
+
+        .top-nav .brand {
+            font-size: 24px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.5);
             text-decoration: none;
         }
-        
-        .back-link:hover { color: #1a3c5e; }
-        
-        .login-footer {
+
+        .top-nav .nav-links {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+            list-style: none;
+        }
+
+        .top-nav .nav-links a {
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 500;
+            opacity: 0.95;
+            transition: opacity 0.2s ease;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+        }
+
+        .top-nav .nav-links a:hover { opacity: 0.75; }
+
+        /* ============================================================
+           Login card (frosted glass)
+           ============================================================ */
+        .login-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 100px 20px 40px;
+        }
+
+        .login-card {
+            position: relative;
+            width: 100%;
+            max-width: 460px;
+            background: rgba(240, 245, 252, 0.92);
+            border-radius: 14px;
+            padding: 40px 40px 32px;
+            box-shadow:
+                0 25px 60px rgba(0, 0, 0, 0.45),
+                0 0 0 1px rgba(255, 255, 255, 0.4) inset;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: #1a2c3e;
+        }
+
+        /* Close (X) button top-right of card */
+        .login-card .close-btn {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            background: #1a3c5e;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: background 0.2s ease;
+            line-height: 1;
+        }
+
+        .login-card .close-btn:hover {
+            background: #0f2a42;
+            color: #ffffff;
+            text-decoration: none;
+        }
+
+        /* Title */
+        .login-card h2 {
             text-align: center;
-            margin-top: 20px;
-            color: rgba(255,255,255,0.6);
-            font-size: 12px;
+            font-size: 30px;
+            font-weight: 800;
+            color: #16283d;
+            margin: 0 0 30px 0;
+            letter-spacing: 0.3px;
+        }
+
+        /* Error banner */
+        .login-card .error {
+            background: #fde8e8;
+            color: #b02a37;
+            border: 1px solid #f5c2c7;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13.5px;
+            margin-bottom: 18px;
+            text-align: center;
+        }
+
+        /* Form groups */
+        .login-card .form-group {
+            margin-bottom: 18px;
+        }
+
+        .login-card label {
+            display: block;
+            font-size: 13.5px;
+            font-weight: 500;
+            color: #4a5a6a;
+            margin-bottom: 6px;
+        }
+
+        /* Input row (icon inside the field) */
+        .field-wrap {
+            position: relative;
+            width: 100%;
+        }
+
+        .field-wrap input {
+            width: 100%;
+            height: 46px;
+            padding: 0 44px 0 14px; /* right space for icon */
+            font-size: 14px;
+            color: #1a2c3e;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid #8fa3b8;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        .field-wrap input::placeholder {
+            color: #9aabbd;
+        }
+
+        .field-wrap input:focus {
+            border-bottom-color: #1a3c5e;
+        }
+
+        /* Icon inside the field */
+        .field-wrap .field-icon {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+            color: #6a7d93;
+            pointer-events: none;
+            line-height: 1;
+        }
+
+        /* Password eye is clickable */
+        .field-wrap .field-icon.clickable {
+            pointer-events: auto;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 4px;
+        }
+
+        .field-wrap .field-icon.clickable:hover {
+            color: #1a3c5e;
+        }
+
+        /* Login button */
+        .btn-login-new {
+            width: 100%;
+            height: 48px;
+            border: none;
+            border-radius: 8px;
+            background: #16283d;
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.15s ease;
+        }
+
+        .btn-login-new:hover {
+            background: #0f1e2e;
+            transform: translateY(-1px);
+        }
+
+        .btn-login-new:active {
+            transform: translateY(0);
+        }
+
+        /* Footer inside card */
+        .card-footer {
+            text-align: center;
+            margin-top: 22px;
+            font-size: 13px;
+            color: #4a5a6a;
+        }
+
+        .card-footer a {
+            color: #1a3c5e;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .card-footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* ============================================================
+           Responsive tweaks
+           ============================================================ */
+        @media (max-width: 640px) {
+            .top-nav { padding: 14px 20px; }
+            .login-card { padding: 32px 24px 26px; }
+            .login-card h2 { font-size: 26px; }
         }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="login-box">
-            <div class="logo">
-                <span class="lock-icon">🔐</span>
-                <h2>Login</h2>
-                <p>eCert BPMI Perikanan</p>
-            </div>
-            
+
+    <!-- ============================================================
+         Top navigation bar
+         ============================================================ -->
+    <nav class="top-nav">
+        <a href="../index.php" class="brand">eCert BPMI</a>
+    </nav>
+
+    <!-- ============================================================
+         Login card
+         ============================================================ -->
+    <div class="login-wrapper">
+        <div class="login-card">
+
+            <!-- Close (X) — goes back to public search -->
+            <a href="../index.php" class="close-btn" title="Close">&times;</a>
+
+            <h2>Admin Login</h2>
+
             <?php if ($error): ?>
-                <div class="error">
-                    <span class="glyphicon glyphicon-exclamation-sign"></span>
-                    <?php echo $error; ?>
-                </div>
+                <div class="error"><?php echo htmlspecialchars($error); ?></div>
             <?php endif; ?>
-            
-            <form method="POST" action="">
+
+            <form method="POST" action="" autocomplete="off">
+                <!-- Username -->
                 <div class="form-group">
                     <label for="username">Username</label>
-                    <div class="input-group">
-                        <span class="input-group-addon">
-                            <span class="glyphicon glyphicon-user"></span>
-                        </span>
-                        <input type="text" id="username" name="username" class="form-control"
-                               placeholder="Enter username" value="<?php echo htmlspecialchars($username_entered); ?>" required autofocus>
+                    <div class="field-wrap">
+                        <input type="text" id="username" name="username"
+                               placeholder="Enter username"
+                               value="<?php echo htmlspecialchars($username_entered); ?>"
+                               required autofocus>
+                        <span class="field-icon glyphicon glyphicon-user"></span>
                     </div>
                 </div>
-                
+
+                <!-- Password -->
                 <div class="form-group">
                     <label for="password">Password</label>
-                    <div class="input-group" style="position: relative;">
-                        <span class="input-group-addon">
-                            <span class="glyphicon glyphicon-lock"></span>
-                        </span>
-                        <input type="password" id="password" name="password" class="form-control password-input"
+                    <div class="field-wrap">
+                        <input type="password" id="password" name="password"
                                placeholder="Enter password" required>
-                        <button type="button" class="password-toggle" id="togglePassword">
+                        <button type="button" class="field-icon clickable" id="togglePassword"
+                                title="Show/Hide password" aria-label="Show or hide password">
                             <span class="glyphicon glyphicon-eye-open" id="toggleIcon"></span>
                         </button>
                     </div>
                 </div>
-                
-                <button type="submit" class="btn-login">
-                    <span class="glyphicon glyphicon-log-in"></span> Login
-                </button>
+
+                <!-- Submit -->
+                <button type="submit" class="btn-login-new">Login</button>
             </form>
-            
-            <a href="../index.php" class="back-link">
-                <span class="glyphicon glyphicon-arrow-left"></span> Back to Certificate Search
-            </a>
-        </div>
-        
-        <div class="login-footer">
-            &copy; 2018 BPMI Perikanan. All rights reserved.
+
         </div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const passwordInput = document.getElementById('password');
-            const toggleButton = document.getElementById('togglePassword');
-            const toggleIcon = document.getElementById('toggleIcon');
-            
-            toggleButton.addEventListener('click', function() {
+            const toggleButton  = document.getElementById('togglePassword');
+            const toggleIcon    = document.getElementById('toggleIcon');
+
+            toggleButton.addEventListener('click', function () {
                 const isVisible = passwordInput.type === 'text';
-                
                 if (isVisible) {
                     passwordInput.type = 'password';
                     toggleIcon.className = 'glyphicon glyphicon-eye-open';
