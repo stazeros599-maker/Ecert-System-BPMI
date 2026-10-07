@@ -21,12 +21,32 @@ require_once 'admin/logger.php';
 
     <style>
         body {
-            background-image: url("images/background.jpg");
+            background-image: url("images/artificial-coral.png");
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
             background-repeat: no-repeat;
             min-height: 100vh;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            background-image: url("images/logo-perikanan.png");
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: min(calc(100vw - 48px), calc(100vh - 48px)) auto;
+            opacity: 0.2;
+        }
+
+        .page-overlay,
+        .complaint-section,
+        .footer {
+            position: relative;
+            z-index: 1;
         }
 
         .page-overlay {
