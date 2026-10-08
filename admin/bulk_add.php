@@ -300,6 +300,12 @@ include 'nav.php';
         padding: 0 10px;
         font-size: 13px;
     }
+    .inline-field input::placeholder,
+    .inline-field textarea::placeholder,
+    .inline-field select::placeholder {
+        color: #8a8f98;
+        opacity: 1;
+    }
     .inline-field input:focus {
         border-color: #1a3c5e;
         outline: none;
@@ -555,7 +561,7 @@ include 'nav.php';
         caret-color: #000000 !important;
     }
     [data-theme="dark"] .inline-field input::placeholder {
-        color: #555555 !important;
+        color: #8a8f98 !important;
         opacity: 1;
     }
     [data-theme="dark"] .inline-field input:-webkit-autofill,
