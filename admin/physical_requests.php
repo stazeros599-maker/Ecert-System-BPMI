@@ -6,6 +6,7 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 }
 
 include '../db.php';
+require_once 'logger.php';
 require 'check_role.php';
 require_role('admin');   // ← Only admins can access
 
@@ -22,13 +23,21 @@ if (isset($_POST['update_status'])) {
     if (in_array($status, ['pending', 'approved', 'rejected', 'shipped'])) {
         $stmt = $conn->prepare("UPDATE physical_requests SET status = ?, admin_notes = ? WHERE request_id = ?");
         $stmt->bind_param("ssi", $status, $admin_notes, $request_id);
-        $stmt->execute();
+        $updated = $stmt->execute();
         $stmt->close();
+
+        log_activity($conn, 'physical_request', 'update_status', $updated ? 'success' : 'failure',
+            $updated ? 'Physical request status updated' : 'Physical request status update failed',
+            (string) $request_id, ['status' => $status]);
         
         $_SESSION['admin_message'] = 'Request status updated.';
         $_SESSION['admin_message_type'] = 'success';
         header('Location: physical_requests.php');
         exit;
+    } else {
+        log_activity($conn, 'physical_request', 'update_status', 'warning',
+            'Physical request status update rejected: invalid status', (string) $request_id,
+            ['status' => $status]);
     }
 }
 
@@ -37,8 +46,11 @@ if (isset($_GET['delete'])) {
     $id = intval($_GET['delete']);
     $stmt = $conn->prepare("DELETE FROM physical_requests WHERE request_id = ?");
     $stmt->bind_param("i", $id);
-    $stmt->execute();
+    $deleted = $stmt->execute();
     $stmt->close();
+
+    log_activity($conn, 'physical_request', 'delete', $deleted ? 'success' : 'failure',
+        $deleted ? 'Physical request deleted' : 'Physical request deletion failed', (string) $id);
     
     $_SESSION['admin_message'] = 'Request deleted.';
     $_SESSION['admin_message_type'] = 'success';
@@ -76,9 +88,7 @@ include 'nav.php';
     
     <div class="row">
         <div class="col-md-12">
-            <h2 style="font-size: 24px; font-weight: 700; color: #1a3c5e; margin: 0 0 10px 0;">
-                <span class="glyphicon glyphicon-envelope"></span> Physical Certificate Requests
-            </h2>
+            <span class="page-info" role="img" tabindex="0" aria-label="Review physical certificate requests and record fulfillment progress." data-tooltip="Review physical certificate requests and record fulfillment progress."><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span></span>
             <hr style="border-top: 2px solid #e1e5eb; margin: 10px 0 25px 0;">
         </div>
     </div>
@@ -146,12 +156,12 @@ include 'nav.php';
                                 $no = 1;
                                 while ($row = $result->fetch_assoc()): 
                                     $status_styles = [
-                                        'pending'  => ['bg' => '#ffc107', 'color' => '#856404', 'label' => 'Pending'],
-                                        'approved' => ['bg' => '#17a2b8', 'color' => 'white',   'label' => 'Approved'],
-                                        'shipped'  => ['bg' => '#28a745', 'color' => 'white',   'label' => 'Shipped'],
-                                        'rejected' => ['bg' => '#dc3545', 'color' => 'white',   'label' => 'Rejected']
+                                        'pending'  => ['class' => 'pending', 'label' => 'Pending'],
+                                        'approved' => ['class' => 'approved', 'label' => 'Approved'],
+                                        'shipped'  => ['class' => 'shipped', 'label' => 'Shipped'],
+                                        'rejected' => ['class' => 'rejected', 'label' => 'Rejected']
                                     ];
-                                    $st = $status_styles[$row['status']] ?? ['bg' => '#6c757d', 'color' => 'white', 'label' => ucfirst($row['status'])];
+                                    $st = $status_styles[$row['status']] ?? ['class' => '', 'label' => ucfirst($row['status'])];
                                 ?>
                                     <tr>
                                         <td style="padding: 10px;"><?php echo $no; ?></td>
@@ -168,7 +178,7 @@ include 'nav.php';
                                             <?php echo nl2br(htmlspecialchars($row['address'])); ?>
                                         </td>
                                         <td style="padding: 10px; text-align: center;">
-                                            <span style="background: <?php echo $st['bg']; ?>; color: <?php echo $st['color']; ?>; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700;">
+                                            <span class="status-indicator <?php echo htmlspecialchars($st['class']); ?>">
                                                 <?php echo $st['label']; ?>
                                             </span>
                                         </td>
@@ -230,11 +240,11 @@ include 'nav.php';
                     
                     <div class="form-group">
                         <label style="font-weight: 600;">Update Status</label>
-                        <select name="status" id="m_status" class="form-control" style="height: 42px;">
-                            <option value="pending">Pending</option>
-                            <option value="approved">Approved</option>
-                            <option value="shipped">Shipped</option>
-                            <option value="rejected">Rejected</option>
+                        <select name="status" id="m_status" class="form-control status-indicator status-dropdown" style="height: 42px;">
+                            <option value="pending">● Pending</option>
+                            <option value="approved">● Approved</option>
+                            <option value="shipped">● Shipped</option>
+                            <option value="rejected">● Rejected</option>
                         </select>
                     </div>
                     
@@ -254,11 +264,15 @@ include 'nav.php';
 
 <script>
 function manageRequest(data) {
+    var statusSelect = document.getElementById('m_status');
+    var statusClasses = ['pending', 'approved', 'shipped', 'rejected'];
     document.getElementById('m_request_id').value = data.request_id;
     document.getElementById('m_name').textContent = data.name;
     document.getElementById('m_serial').textContent = 'Serial: ' + data.serialNum;
     document.getElementById('m_contact').textContent = data.email + ' | ' + data.phone;
-    document.getElementById('m_status').value = data.status;
+    statusSelect.value = data.status;
+    statusSelect.classList.remove(...statusClasses);
+    statusSelect.classList.add(statusClasses.includes(data.status) ? data.status : 'pending');
     document.getElementById('m_notes').value = data.admin_notes || '';
     $('#manageModal').modal('show');
 }
