@@ -6,6 +6,7 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 }
 
 include '../db.php';
+require_once 'logger.php';
 require 'check_role.php';
 require_role('admin');   // ← Only admins can access
 include 'nav_stack.php';
@@ -120,11 +121,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $stmt->bind_param("sssssss", $nokp, $name, $course_name, $course_date, $cert_file, $cert_type, $serialNum);
         
         if ($stmt->execute()) {
+            log_activity($conn, 'certificate', 'edit', 'success',
+                'Certificate updated', $serialNum,
+                ['nokp' => $nokp, 'course' => $course_name, 'cert_type' => $cert_type]);
             $_SESSION['admin_message'] = 'Certificate updated successfully!';
             $_SESSION['admin_message_type'] = 'success';
             header('Location: index.php');
             exit;
         } else {
+            log_activity($conn, 'certificate', 'edit', 'failure',
+                'Certificate update failed: ' . $stmt->error, $serialNum,
+                ['nokp' => $nokp]);
             $message = 'Database error: ' . $stmt->error;
             $message_type = 'danger';
         }
@@ -142,6 +149,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Certificate - eCert BPMI</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script>
+        (function() {
+            var theme = localStorage.getItem('ecert-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
     <style>
         * { box-sizing: border-box; }
         body { background: #f0f2f5; padding-top: 70px; font-family: 'Segoe UI', Arial, sans-serif; overflow-x: hidden; }
@@ -151,10 +164,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         .navbar-nav > li > a:hover { background: rgba(255,255,255,0.1) !important; }
         .navbar-toggle { border-color: rgba(255,255,255,0.3); margin-top: 12px; }
         .navbar-toggle .icon-bar { background-color: white; }
-        .container { max-width: 700px; padding: 0 15px; }
+        .edit-certificate-container { max-width: 700px; padding: 0 15px; }
         .panel { border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border: none; overflow: hidden; }
         .panel-heading { background: #1a3c5e !important; color: white !important; border-radius: 10px 10px 0 0 !important; padding: 15px 20px; font-size: 16px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
         .panel-heading .badge { background: rgba(255,255,255,0.2); font-size: 13px; padding: 4px 12px; }
+        .panel-heading > div:first-child { margin-left: auto; display: flex; justify-content: flex-end; }
         .panel-body { padding: 25px 30px; }
         .form-group { margin-bottom: 20px; }
         .form-group label { font-weight: 600; color: #555; display: block; margin-bottom: 5px; font-size: 14px; }
@@ -174,11 +188,75 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         .alert { border-radius: 10px; padding: 12px 20px; margin-bottom: 20px; }
         .alert .close { font-size: 20px; }
         .form-actions { margin-top: 25px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .theme-toggle-btn {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: white;
+            padding: 8px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin: 14px 10px 0;
+        }
+        .theme-toggle-label { font-size: 13px; font-weight: 500; }
+        [data-theme="dark"] body {
+            background: #18191d;
+            color: #e8eaed;
+        }
+        [data-theme="dark"] .navbar {
+            background: #16181c;
+            border-bottom: 1px solid #34373e;
+        }
+        [data-theme="dark"] .panel,
+        [data-theme="dark"] .panel-body {
+            background: #212328;
+            color: #e8eaed;
+        }
+        [data-theme="dark"] .panel-default { border-color: #34373e; }
+        [data-theme="dark"] .panel-heading {
+            background: #262a31 !important;
+            border-color: #34373e !important;
+            color: #e8eaed !important;
+        }
+        [data-theme="dark"] .form-group label { color: #b8bcc4 !important; }
+        [data-theme="dark"] .form-control {
+            background: #2a2c33 !important;
+            border-color: #34373e !important;
+            color: #e8eaed !important;
+        }
+        [data-theme="dark"] .form-control::placeholder { color: #8b8f98; }
+        [data-theme="dark"] .form-control[disabled] {
+            background: #282a30 !important;
+            color: #8b8f98 !important;
+        }
+        [data-theme="dark"] .form-group[style*="background"] {
+            background: #282a30 !important;
+            border-color: #34373e !important;
+        }
+        [data-theme="dark"] .form-group span[style*="color: #333"] {
+            color: #e8eaed !important;
+        }
+        [data-theme="dark"] .current-file {
+            background: #282a30;
+            border-color: #34373e;
+        }
+        [data-theme="dark"] .current-file .file-name-display { color: #e8eaed; }
+        [data-theme="dark"] .text-muted { color: #8b8f98; }
+        [data-theme="dark"] .alert-danger {
+            background: #3a2528;
+            border-color: #6b343b;
+            color: #f1aeb5;
+        }
         @media (max-width: 768px) {
             body { padding-top: 60px; }
             .navbar-brand { font-size: 16px; padding: 15px 10px; }
             .navbar-nav > li > a { padding: 10px 15px; }
-            .container { padding: 0 10px; }
+            .theme-toggle-btn { margin: 8px 15px 10px; }
+            .theme-toggle-label { display: none; }
+            .edit-certificate-container { padding: 0 10px; }
             .panel-body { padding: 20px 15px; }
             .panel-heading { font-size: 15px; padding: 12px 15px; flex-direction: column; align-items: stretch; text-align: center; }
             .form-control { height: 40px; font-size: 13px; }
@@ -190,37 +268,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-fixed-top">
-        <div class="container">
-            <div class="navbar-header">
-                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#nav">
-                    <span class="sr-only">Toggle navigation</span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                </button>
-                <a class="navbar-brand" href="index.php" style="display: flex; align-items: center; gap: 10px; margin-top: 5px;">
-                    <img src="../images/logo-perikanan.png" alt="Logo" style="height: 45px; width: auto;">
-                    <span>eCert BPMI</span>
-                </a>
-            </div>
-            <div class="collapse navbar-collapse" id="nav">
-                <ul class="nav navbar-nav">
-                    <li><a href="index.php">Dashboard</a></li>
-                    <li><a href="add_certificate.php">Add Certificate</a></li>
-                    <li><a href="complaints.php">Complaints</a></li>
-                </ul>
-                <ul class="nav navbar-nav navbar-right">
-                    <li><a href="logout.php"><span class="glyphicon glyphicon-log-out"></span> Logout</a></li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+    <?php include 'nav.php'; ?>
 
-    <div class="container">
+    <div class="container edit-certificate-container">
         <div class="panel panel-default">
             <div class="panel-heading">
-                <div><span class="glyphicon glyphicon-edit"></span> Edit Certificate</div>
+                <div><span class="page-info page-info-inverse" role="img" tabindex="0" aria-label="Update certificate details and the attached file." data-tooltip="Update certificate details and the attached file."><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span></span></div>
                 <span class="badge">Serial: <?php echo htmlspecialchars($cert['serialNum']); ?></span>
             </div>
             <div class="panel-body">
