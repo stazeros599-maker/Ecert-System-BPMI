@@ -6,6 +6,7 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 }
 
 include '../db.php';
+require_once 'logger.php';
 require 'check_role.php';
 require_role('admin');
 
@@ -121,6 +122,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['bulk_submit'])) {
             $stmt->close();
         }
     }
+
+    $bulk_status = $success_count === 0
+        ? 'failure'
+        : ((!empty($errors) || !empty($error_rows)) ? 'warning' : 'success');
+    log_activity($conn, 'certificate', 'bulk_add', $bulk_status,
+        "Bulk certificate import: {$success_count} added, " . (count($errors) + count($error_rows)) . ' failed',
+        $course_name,
+        [
+            'course_date' => $course_date,
+            'cert_type' => $cert_type,
+            'submitted' => count($participants),
+            'added' => $success_count,
+            'failed' => count($errors) + count($error_rows),
+            'errors' => array_slice(array_merge($errors, $error_rows), 0, 10)
+        ]);
     
     if (!empty($errors)) {
         $message = 'Errors: ' . implode('<br>', $errors);
@@ -615,15 +631,8 @@ include 'nav.php';
 
     <div class="row">
         <div class="col-md-12">
-            <h2 style="font-size: 24px; font-weight: 700; color: #1a3c5e; margin: 0 0 10px 0;">
-                <span class="glyphicon glyphicon-duplicate"></span> Bulk Add Certificates
-            </h2>
+            <span class="page-info" role="img" tabindex="0" aria-label="Register certificates for multiple participants in one course." data-tooltip="Register certificates for multiple participants in one course."><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span></span>
             <hr style="border-top: 2px solid #e1e5eb; margin: 10px 0 25px 0;">
-            <p style="color: #666; margin-bottom: 20px;">
-                Add certificates for <strong>multiple participants</strong> attending the <strong>same course</strong>.
-                Fill in the course details once, then add each participant below — or
-                <strong>drop a folder of PDF certificates</strong> onto the participants area to auto-scan them all.
-            </p>
         </div>
     </div>
 
@@ -1437,7 +1446,7 @@ async function handleBulkFiles(fileList) {
         div.className = 'scan-item';
         div.innerHTML =
             '<span class="fname">' + (idx + 1) + '. ' + escapeHtml(f.name) + '</span>' +
-            '<span class="status scan-pend">Waiting…</span>';
+            '<span class="status status-indicator scan-pend">Waiting…</span>';
         listEl.appendChild(div);
         return div.querySelector('.status');
     });
@@ -1448,7 +1457,7 @@ async function handleBulkFiles(fileList) {
         if (bulkScanAbort) {
             for (let j = i; j < files.length; j++) {
                 itemEls[j].textContent = 'Cancelled';
-                itemEls[j].className = 'status scan-pend';
+                itemEls[j].className = 'status status-indicator scan-pend';
             }
             break;
         }
@@ -1456,7 +1465,7 @@ async function handleBulkFiles(fileList) {
         const file = files[i];
         titleEl.textContent = 'Scanning ' + (i + 1) + ' / ' + files.length + ' — ' + file.name;
         itemEls[i].innerHTML = '<span class="glyphicon glyphicon-refresh spin"></span> Scanning…';
-        itemEls[i].className = 'status scan-pend';
+        itemEls[i].className = 'status status-indicator scan-pend';
 
         const result = await scanSinglePdf(file);
 
@@ -1467,22 +1476,22 @@ async function handleBulkFiles(fileList) {
 
             if (isDbDup) {
                 itemEls[i].textContent = '⚠ Serial already in DB: ' + ext.serialNum;
-                itemEls[i].className = 'status scan-err';
+                itemEls[i].className = 'status status-indicator scan-err';
                 dupCount++;
             } else if (filledCount === 0) {
                 itemEls[i].textContent = '⚠ No fields detected';
-                itemEls[i].className = 'status scan-warn';
+                itemEls[i].className = 'status status-indicator scan-warn';
                 warnCount++;
             } else {
                 itemEls[i].textContent = '✓ ' + result.filled.join(', ');
-                itemEls[i].className = 'status scan-ok';
+                itemEls[i].className = 'status status-indicator scan-ok';
                 okCount++;
             }
 
             createRowFromScan(file, ext, filledCount === 0, isDbDup);
         } else {
             itemEls[i].textContent = '✗ ' + (result.error || 'Scan failed');
-            itemEls[i].className = 'status scan-err';
+            itemEls[i].className = 'status status-indicator scan-err';
             errCount++;
             createRowFromScan(file, {}, true, false);
         }
