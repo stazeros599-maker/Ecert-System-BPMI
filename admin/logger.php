@@ -9,7 +9,7 @@
 
 if (!function_exists('log_activity')) {
 
-    function log_activity($conn, $module, $action, $status = 'success', $message = null, $target_id = null, $details = null) {
+    function log_activity($conn, $module, $action, $status = 'success', $message = null, $target_id = null, $details = null, $duration_ms = null) {
         
         // Guard: connection must be alive
         if (!isset($conn) || !($conn instanceof mysqli)) {
@@ -46,7 +46,20 @@ if (!function_exists('log_activity')) {
         // ============================================
         // WHAT
         // ============================================
-        $details_json = !empty($details) ? json_encode($details, JSON_UNESCAPED_UNICODE) : null;
+        if ($duration_ms === null) {
+            $request_started_at = $_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true);
+            $duration_ms = round(max(0, (microtime(true) - $request_started_at) * 1000), 2);
+        } else {
+            $duration_ms = round(max(0, (float) $duration_ms), 2);
+        }
+
+        if (is_array($details)) {
+            $details['duration_ms'] = $duration_ms;
+        } else {
+            $details = $details === null ? [] : ['value' => $details];
+            $details['duration_ms'] = $duration_ms;
+        }
+        $details_json = json_encode($details, JSON_UNESCAPED_UNICODE);
         
         if ($message) {
             $message = substr($message, 0, 500);
