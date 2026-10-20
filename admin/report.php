@@ -325,13 +325,11 @@ include 'nav.php';
     <!-- Page Title -->
     <div class="row">
         <div class="col-md-12">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 10px;">
-                <h2 style="font-size: 26px; font-weight: 700; color: var(--text-primary); margin: 0;">
-                    <span class="glyphicon glyphicon-stats"></span> Participant Report
-                </h2>
+            <div style="display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
                 <button class="print-btn" onclick="window.print()">
                     <span class="glyphicon glyphicon-print"></span> Print Report
                 </button>
+                <span class="page-info" role="img" tabindex="0" aria-label="Review participant distribution across staff and public certificate holders." data-tooltip="Review participant distribution across staff and public certificate holders."><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span></span>
             </div>
             <hr style="border-top: 2px solid var(--border-color); margin: 10px 0 25px 0;">
             <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 25px;">
