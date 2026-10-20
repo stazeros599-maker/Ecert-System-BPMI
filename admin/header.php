@@ -728,6 +728,318 @@
         .theme-toggle-btn.pulse {
             animation: togglePulse 0.5s ease;
         }
+
+        /* Shared admin surfaces follow the developer dashboard styling. */
+        body {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+        }
+
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px var(--shadow);
+            overflow: hidden;
+        }
+
+        .panel > .panel-heading {
+            background: var(--bg-panel-head);
+            border-color: var(--border-color);
+            color: var(--text-invert);
+        }
+
+        .panel > .panel-body,
+        .panel > .panel-footer {
+            background: var(--bg-card);
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .form-control {
+            background: var(--bg-input);
+            border-color: var(--border-strong);
+            border-radius: 6px;
+            color: var(--text-primary);
+            box-shadow: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.25s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+        }
+
+        .table > thead > tr > th {
+            background: var(--bg-table-header);
+            border-color: var(--border-table);
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .table > tbody > tr > td {
+            border-color: var(--border-table);
+            color: var(--text-primary);
+        }
+
+        .btn {
+            border-radius: 6px;
+            font-weight: 600;
+            transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .btn-primary:hover,
+        .btn-primary:focus {
+            background-color: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+
+        .container h2[style*="color: #1a3c5e"] {
+            color: var(--text-primary) !important;
+        }
+
+        .container h2[style*="color: #1a3c5e"] + hr {
+            border-color: var(--border-color) !important;
+        }
+
+        .page-info {
+            position: relative;
+            display: inline-flex;
+            float: right;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            background: var(--bg-card-alt);
+            color: var(--accent);
+            font-size: 14px;
+            line-height: 1;
+            text-decoration: none;
+            vertical-align: middle;
+            margin: 0 0 8px 8px;
+            cursor: help;
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+        }
+
+        .page-info:hover,
+        .page-info:focus-visible {
+            background: var(--bg-hover);
+            border-color: var(--accent);
+            color: var(--accent-hover);
+            transform: scale(1.06);
+            outline: none;
+        }
+
+        .admin-info-tooltip {
+            position: fixed;
+            z-index: 2147483647;
+            width: max-content;
+            max-width: min(300px, calc(100vw - 32px));
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-card);
+            box-shadow: 0 8px 24px var(--shadow);
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 400;
+            line-height: 1.45;
+            text-align: left;
+            white-space: normal;
+            overflow-wrap: anywhere;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transform: translateY(-4px);
+            transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
+        }
+
+        .admin-info-tooltip.is-visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .admin-info-tooltip.login-tooltip {
+            --border-color: #dee2e6;
+            --bg-card: #ffffff;
+            --text-primary: #212529;
+            --shadow: rgba(0,0,0,0.16);
+        }
+
+        .page-info + hr {
+            clear: both;
+        }
+
+        .page-info-inverse {
+            border-color: rgba(255,255,255,0.35);
+            background: rgba(255,255,255,0.14);
+            color: #ffffff;
+        }
+
+        .page-info-inverse:hover,
+        .page-info-inverse:focus-visible {
+            background: rgba(255,255,255,0.24);
+            border-color: rgba(255,255,255,0.65);
+            color: #ffffff;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .page-info,
+            .admin-info-tooltip {
+                transition: none;
+            }
+        }
+
+        .page-description {
+            color: var(--text-muted);
+            font-size: 15px;
+            font-weight: 500;
+            line-height: 1.5;
+            margin: 0 0 20px;
+        }
+
+        .status-indicator,
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            max-width: 100%;
+            padding: 4px 10px;
+            border: 1px solid transparent;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1.25;
+            white-space: nowrap;
+        }
+
+        .status-indicator.success,
+        .status-indicator.resolved,
+        .status-indicator.shipped,
+        .status-indicator.scan-ok,
+        .status-pill.success {
+            --status-start: #38a66c;
+            --status-end: #197747;
+            --status-ink: #ffffff;
+            background: linear-gradient(120deg, var(--status-start), var(--status-end));
+            border-color: transparent;
+            color: var(--status-ink);
+        }
+
+        .status-indicator.warning,
+        .status-indicator.pending,
+        .status-indicator.in_progress,
+        .status-indicator.scan-warn,
+        .status-pill.warning {
+            --status-start: #f5c34d;
+            --status-end: #d99018;
+            --status-ink: #332609;
+            background: linear-gradient(120deg, var(--status-start), var(--status-end));
+            border-color: transparent;
+            color: var(--status-ink);
+        }
+
+        .status-indicator.failure,
+        .status-indicator.danger,
+        .status-indicator.new,
+        .status-indicator.rejected,
+        .status-indicator.scan-err,
+        .status-pill.failure {
+            --status-start: #e45b69;
+            --status-end: #b52e48;
+            --status-ink: #ffffff;
+            background: linear-gradient(120deg, var(--status-start), var(--status-end));
+            border-color: transparent;
+            color: var(--status-ink);
+        }
+
+        .status-indicator.info,
+        .status-indicator.approved {
+            --status-start: #38a8c4;
+            --status-end: #23739b;
+            --status-ink: #ffffff;
+            background: linear-gradient(120deg, var(--status-start), var(--status-end));
+            border-color: transparent;
+            color: var(--status-ink);
+        }
+
+        .status-indicator.scan-pend {
+            --status-start: #8b929d;
+            --status-end: #606875;
+            --status-ink: #ffffff;
+            background: linear-gradient(120deg, var(--status-start), var(--status-end));
+            border-color: transparent;
+            color: var(--status-ink);
+        }
+
+        select.form-control,
+        select.filter-select {
+            appearance: none;
+            -webkit-appearance: none;
+            padding-right: 34px !important;
+            border-radius: 999px !important;
+            background-color: var(--bg-card) !important;
+            background-image:
+                linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
+                linear-gradient(135deg, var(--text-muted) 50%, transparent 50%),
+                linear-gradient(120deg, var(--bg-card-alt), var(--bg-card)) !important;
+            background-position:
+                calc(100% - 15px) 50%,
+                calc(100% - 11px) 50%,
+                0 0 !important;
+            background-size: 4px 4px, 4px 4px, 100% 100% !important;
+            background-repeat: no-repeat !important;
+        }
+
+        select.form-control option,
+        select.filter-select option {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        select.status-indicator.status-dropdown {
+            appearance: none;
+            -webkit-appearance: none;
+            padding-right: 26px;
+            cursor: pointer;
+            background-color: transparent !important;
+            background-image:
+                linear-gradient(45deg, transparent 50%, var(--status-ink, #ffffff) 50%),
+                linear-gradient(135deg, var(--status-ink, #ffffff) 50%, transparent 50%),
+                linear-gradient(120deg, var(--status-start, #708090), var(--status-end, #536273)) !important;
+            background-position:
+                calc(100% - 15px) 50%,
+                calc(100% - 11px) 50%,
+                0 0 !important;
+            background-size: 4px 4px, 4px 4px, 100% 100% !important;
+            background-repeat: no-repeat !important;
+        }
+
+        .status-dropdown option[value="new"],
+        .status-dropdown option[value="rejected"] { color: #bd334b; }
+        .status-dropdown option[value="pending"],
+        .status-dropdown option[value="in_progress"] { color: #a96a05; }
+        .status-dropdown option[value="approved"] { color: #23739b; }
+        .status-dropdown option[value="shipped"],
+        .status-dropdown option[value="resolved"] { color: #197747; }
+
+        [data-theme="dark"] select.form-control,
+        [data-theme="dark"] select.filter-select {
+            background-color: var(--bg-card) !important;
+        }
+
+        .status-indicator[aria-pressed="false"] {
+            opacity: 0.45;
+        }
     </style>
+    <script src="<?php echo strpos($_SERVER['REQUEST_URI'] ?? '', '/developer/') !== false ? '../info_tooltip.js' : 'info_tooltip.js'; ?>" defer></script>
 </head>
 <body>
