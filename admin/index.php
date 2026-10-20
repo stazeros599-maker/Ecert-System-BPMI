@@ -37,11 +37,11 @@ if (isset($_GET['delete_participant']) && !empty($_GET['delete_participant'])) {
     
     $stmt = $conn->prepare("DELETE FROM participant WHERE icNum = ?");
     $stmt->bind_param("s", $ic);
-    $stmt->execute();
+    $deleted = $stmt->execute();
     $stmt->close();
     
-    log_activity($conn, 'participant', 'delete', 'success', 
-        "Participant and all certificates deleted", $ic, 
+    log_activity($conn, 'participant', 'delete', $deleted ? 'success' : 'failure',
+        $deleted ? 'Participant and all certificates deleted' : 'Participant deletion failed', $ic,
         ['ic' => $ic]);
 
     $_SESSION['admin_message'] = 'Participant and all their certificates deleted successfully.';
@@ -88,11 +88,22 @@ if ($filter === 'insider') {
 
 // Apply search
 if (!empty($search)) {
-    $sql .= " AND (p.fullName LIKE ? OR p.icNum LIKE ?)";
+    $sql .= " AND (
+        p.fullName LIKE ?
+        OR p.icNum LIKE ?
+        OR c.serialNum LIKE ?
+        OR c.course_name LIKE ?
+        OR c.course_date LIKE ?
+        OR DATE_FORMAT(c.course_date, '%d/%m/%Y') LIKE ?
+    )";
     $search_param = '%' . $search . '%';
     $params[] = $search_param;
     $params[] = $search_param;
-    $types .= "ss";
+    $params[] = $search_param;
+    $params[] = $search_param;
+    $params[] = $search_param;
+    $params[] = $search_param;
+    $types .= "ssssss";
 }
 
 $sql .= " GROUP BY p.icNum, p.fullName, p.insider
@@ -107,6 +118,32 @@ if (!empty($params)) {
 } else {
     $result = $conn->query($sql);
     $filtered_count = $result->num_rows;
+}
+
+// ============================================
+// PARTICIPANTS WITH SAME NAME, DIFFERENT IC
+// ============================================
+$duplicate_names_sql = "SELECT LOWER(TRIM(p.fullName)) AS normalized_name, p.fullName, p.icNum
+                        FROM participant p
+                        INNER JOIN (
+                            SELECT LOWER(TRIM(fullName)) AS normalized_name
+                            FROM participant
+                            WHERE TRIM(fullName) <> ''
+                            GROUP BY LOWER(TRIM(fullName))
+                            HAVING COUNT(DISTINCT icNum) > 1
+                        ) duplicates ON LOWER(TRIM(p.fullName)) = duplicates.normalized_name
+                        ORDER BY duplicates.normalized_name, p.icNum";
+$duplicate_names_result = $conn->query($duplicate_names_sql);
+$duplicate_name_groups = [];
+while ($duplicate = $duplicate_names_result->fetch_assoc()) {
+    $normalized_name = $duplicate['normalized_name'];
+    if (!isset($duplicate_name_groups[$normalized_name])) {
+        $duplicate_name_groups[$normalized_name] = [
+            'name' => $duplicate['fullName'],
+            'ics' => []
+        ];
+    }
+    $duplicate_name_groups[$normalized_name]['ics'][] = $duplicate['icNum'];
 }
 
 // ============================================
@@ -151,9 +188,7 @@ include 'nav.php';
     <!-- Title -->
     <div class="row">
         <div class="col-md-12">
-            <h2 style="font-size: 24px; font-weight: 700; color: #1a3c5e; margin: 0 0 10px 0;">
-                Dashboard
-            </h2>
+            <span class="page-info" role="img" tabindex="0" aria-label="Review certificate totals, participant activity, and recent additions." data-tooltip="Review certificate totals, participant activity, and recent additions."><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span></span>
             <hr style="border-top: 2px solid #e1e5eb; margin: 10px 0 25px 0;">
         </div>
     </div>
@@ -201,6 +236,32 @@ include 'nav.php';
                 <div class="alert alert-<?php echo $message_type; ?> alert-dismissible fade in" style="border-radius: 10px; padding: 12px 20px; margin-bottom: 20px;">
                     <button type="button" class="close" data-dismiss="alert">&times;</button>
                     <?php echo $message; ?>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <?php if (!empty($duplicate_name_groups)): ?>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="alert alert-warning" style="margin-bottom: 20px;">
+                    <strong><span class="glyphicon glyphicon-alert"></span>
+                        <?php echo count($duplicate_name_groups); ?> participant name(s) have multiple IC numbers.
+                    </strong>
+                    <details style="margin-top: 8px;">
+                        <summary style="cursor: pointer;">Review matching names and IC numbers</summary>
+                        <ul style="margin: 8px 0 0; padding-left: 22px;">
+                            <?php foreach ($duplicate_name_groups as $duplicate_group): ?>
+                                <li>
+                                    <strong><?php echo htmlspecialchars($duplicate_group['name']); ?></strong>:
+                                    <?php foreach ($duplicate_group['ics'] as $index => $duplicate_ic): ?>
+                                        <?php if ($index > 0) echo ', '; ?>
+                                        <span style="font-family: 'Courier New', monospace;"><?php echo htmlspecialchars($duplicate_ic); ?></span>
+                                    <?php endforeach; ?>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </details>
                 </div>
             </div>
         </div>
@@ -282,7 +343,7 @@ include 'nav.php';
                         <div style="flex: 1; position: relative;">
                             <span class="glyphicon glyphicon-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #888; font-size: 14px; z-index: 5;"></span>
                             <input type="text" name="search" class="form-control" 
-                                   placeholder="Search by name or IC number..."
+                                   placeholder="Search by participant name, IC, serial, course name or date..."
                                    value="<?php echo htmlspecialchars($search); ?>"
                                    style="height: 42px; font-size: 14px; padding-left: 40px; border: 2px solid #e1e5eb; border-radius: 6px;">
                         </div>
