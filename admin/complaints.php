@@ -6,6 +6,7 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 }
 
 include '../db.php';
+require_once 'logger.php';
 require 'check_role.php';
 require_role('admin');   // ← Only admins can access
 
@@ -23,12 +24,19 @@ if (isset($_POST['update_status']) && isset($_POST['complaint_id'])) {
     if (in_array($new_status, ['new', 'in_progress', 'resolved'])) {
         $stmt = $conn->prepare("UPDATE complaints SET status = ?, admin_id = ? WHERE complaint_id = ?");
         $stmt->bind_param("sii", $new_status, $admin_id, $complaint_id);
-        $stmt->execute();
+        $updated = $stmt->execute();
         $stmt->close();
+
+        log_activity($conn, 'complaint', 'update_status', $updated ? 'success' : 'failure',
+            $updated ? 'Complaint status updated' : 'Complaint status update failed',
+            (string) $complaint_id, ['status' => $new_status]);
         
         $_SESSION['admin_message'] = 'Complaint status updated.';
         $_SESSION['admin_message_type'] = 'success';
     } else {
+        log_activity($conn, 'complaint', 'update_status', 'warning',
+            'Complaint status update rejected: invalid status', (string) $complaint_id,
+            ['status' => $new_status]);
         $_SESSION['admin_message'] = 'Invalid status.';
         $_SESSION['admin_message_type'] = 'danger';
     }
@@ -51,8 +59,11 @@ if (isset($_GET['delete'])) {
     $id = intval($_GET['delete']);
     $stmt = $conn->prepare("DELETE FROM complaints WHERE complaint_id = ?");
     $stmt->bind_param("i", $id);
-    $stmt->execute();
+    $deleted = $stmt->execute();
     $stmt->close();
+
+    log_activity($conn, 'complaint', 'delete', $deleted ? 'success' : 'failure',
+        $deleted ? 'Complaint deleted' : 'Complaint deletion failed', (string) $id);
     
     $_SESSION['admin_message'] = 'Complaint deleted.';
     $_SESSION['admin_message_type'] = 'success';
@@ -125,9 +136,7 @@ include 'nav.php';
     <!-- Title -->
     <div class="row">
         <div class="col-md-12">
-            <h2 style="font-size: 24px; font-weight: 700; color: #1a3c5e; margin: 0 0 10px 0;">
-                Public Complaints
-            </h2>
+            <span class="page-info" role="img" tabindex="0" aria-label="Review public feedback, update complaint statuses, and track resolution progress." data-tooltip="Review public feedback, update complaint statuses, and track resolution progress."><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span></span>
             <hr style="border-top: 2px solid #e1e5eb; margin: 10px 0 25px 0;">
         </div>
     </div>
@@ -235,13 +244,12 @@ include 'nav.php';
                                 <?php 
                                 $count = 1;
                                 while ($row = $result->fetch_assoc()): 
-                                    // Status styling
                                     $status_styles = [
-                                        'new'         => ['bg' => '#dc3545', 'border' => '#a71d2a', 'color' => '#fff',    'label' => 'New'],
-                                        'in_progress' => ['bg' => '#ffc107', 'border' => '#d39e00', 'color' => '#000',    'label' => 'In Progress'],
-                                        'resolved'    => ['bg' => '#28a745', 'border' => '#1e7e34', 'color' => '#fff',    'label' => 'Resolved']
+                                        'new'         => ['class' => 'new', 'label' => 'New'],
+                                        'in_progress' => ['class' => 'in_progress', 'label' => 'In Progress'],
+                                        'resolved'    => ['class' => 'resolved', 'label' => 'Resolved']
                                     ];
-                                    $st = $status_styles[$row['status']] ?? ['bg' => '#6c757d', 'border' => '#545b62', 'color' => '#fff', 'label' => ucfirst($row['status'])];
+                                    $st = $status_styles[$row['status']] ?? ['class' => '', 'label' => ucfirst($row['status'])];
                                 ?>
                                     <tr>
                                         <td style="padding: 10px;"><?php echo $count; ?></td>
@@ -269,24 +277,7 @@ include 'nav.php';
                                                 
                                                 <select name="status" 
                                                         onchange="this.form.submit()" 
-                                                        class="status-dropdown"
-                                                        style="background: <?php echo $st['bg']; ?>; 
-                                                               color: <?php echo $st['color']; ?>; 
-                                                               border: 2px solid <?php echo $st['border']; ?>; 
-                                                               font-weight: 700; 
-                                                               font-size: 12px;
-                                                               padding: 6px 28px 6px 12px;
-                                                               border-radius: 20px;
-                                                               cursor: pointer;
-                                                               appearance: none;
-                                                               -webkit-appearance: none;
-                                                               -moz-appearance: none;
-                                                               background-image: url(\"data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='<?php echo $row['status'] == 'in_progress' ? '%23000' : '%23fff'; ?>' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e\");
-                                                               background-repeat: no-repeat;
-                                                               background-position: right 8px center;
-                                                               background-size: 12px;
-                                                               outline: none;
-                                                               transition: all 0.2s;">
+                                                    class="status-indicator status-dropdown <?php echo htmlspecialchars($st['class']); ?>">
                                                     <option value="new"         <?php echo $row['status'] == 'new' ? 'selected' : ''; ?>>● New</option>
                                                     <option value="in_progress" <?php echo $row['status'] == 'in_progress' ? 'selected' : ''; ?>>● In Progress</option>
                                                     <option value="resolved"    <?php echo $row['status'] == 'resolved' ? 'selected' : ''; ?>>● Resolved</option>
@@ -381,11 +372,16 @@ function viewComplaint(data) {
     
     // Show status with colored badge
     var statusMap = {
-        'new':         '<span style="background:#dc3545; color:white; padding:3px 12px; border-radius:20px; font-size:12px; font-weight:600;">New</span>',
-        'in_progress': '<span style="background:#ffc107; color:#000; padding:3px 12px; border-radius:20px; font-size:12px; font-weight:600;">In Progress</span>',
-        'resolved':    '<span style="background:#28a745; color:white; padding:3px 12px; border-radius:20px; font-size:12px; font-weight:600;">Resolved</span>'
+        'new':         { className: 'new', label: 'New' },
+        'in_progress': { className: 'in_progress', label: 'In Progress' },
+        'resolved':    { className: 'resolved', label: 'Resolved' }
     };
-    document.getElementById('v_status').innerHTML = statusMap[data.status] || data.status;
+    var status = statusMap[data.status];
+    if (status) {
+        document.getElementById('v_status').innerHTML = '<span class="status-indicator ' + status.className + '">' + status.label + '</span>';
+    } else {
+        document.getElementById('v_status').textContent = data.status;
+    }
     
     document.getElementById('v_created').textContent = data.created_at;
     $('#viewModal').modal('show');
@@ -393,12 +389,6 @@ function viewComplaint(data) {
 </script>
 
 <style>
-    /* Status dropdown hover effect */
-    .status-dropdown:hover {
-        transform: scale(1.05);
-        box-shadow: 0 3px 8px rgba(0,0,0,0.2);
-    }
-    
     /* Fix dropdown option appearance in some browsers */
     .status-dropdown option {
         background: white;
