@@ -1,18 +1,18 @@
 <?php
 // db.php - Database connection file
 
-$host     = getenv('MYSQL_ADDON_HOST')     ?: 'b2alyrh6onix1ljywzb1-mysql.services.clever-cloud.com';
-$username = getenv('MYSQL_ADDON_USER')     ?: 'ukelfumksdmwak5e';
-$password = getenv('MYSQL_ADDON_PASSWORD') ?: 'bBP1FHwCuwyH8uSMGbdp';
-$database = getenv('MYSQL_ADDON_DB')       ?: 'b2alyrh6onix1ljywzb1';
-$port     = getenv('MYSQL_ADDON_PORT')     ?: 3306;
+// Replace these 4 values with your actual InfinityFree MySQL details
+$host     = 'sql107.infinityfree.com'; // Your InfinityFree MySQL Hostname
+$username = 'if0_43222027';            // Your InfinityFree MySQL Username
+$password = 'ecertSystemBpmi';  // Your InfinityFree vPanel/Account Password
+$database = 'if0_43222027_ecertPortal_db';    // Your InfinityFree Database Name
+$port     = 3306;
 
-$conn = mysqli_init();
-mysqli_ssl_set($conn, NULL, NULL, NULL, NULL, NULL);
-mysqli_real_connect($conn, $host, $username, $password, $database, $port);
+// Initialize mysqli without SSL requirement
+$conn = mysqli_connect($host, $username, $password, $database, $port);
 
-if ($conn->connect_error) {
-    die("Database connection failed: " . $conn->connect_error);
+if (!$conn) {
+    die("Database connection failed: " . mysqli_connect_error());
 }
 
 $conn->set_charset("utf8mb4");
