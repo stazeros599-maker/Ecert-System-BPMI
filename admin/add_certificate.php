@@ -214,8 +214,8 @@ include 'nav.php';
 
 <div class="container" style="padding-top: 20px;">
     <div style="background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border: none; overflow: hidden; max-width: 700px; margin: 0 auto;">
-        <div style="background: #1a3c5e; color: white; padding: 15px 20px; font-size: 16px; font-weight: 600;">
-            <span class="glyphicon glyphicon-plus"></span> Add New Certificate
+        <div style="background: #1a3c5e; color: white; padding: 12px 20px; min-height: 52px; display: flex; align-items: center; justify-content: flex-end;">
+            <span class="page-info page-info-inverse" role="img" tabindex="0" aria-label="Register a certificate and link it to a participant." data-tooltip="Register a certificate and link it to a participant." style="float: none; margin: 0;"><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span></span>
         </div>
         <div style="padding: 25px 30px;">
             <?php if ($message): ?>
@@ -328,6 +328,12 @@ include 'nav.php';
                         </button>
                         <span id="scanStatus" style="margin-left: 12px; font-size: 13px; color: #666;"></span>
                     </div>
+                    <div id="rawOcrPanel" style="display: none; margin-top: 12px;">
+                        <details>
+                            <summary style="cursor: pointer; font-weight: 600;">Show raw OCR text</summary>
+                            <pre id="rawOcrText" style="white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow-y: auto; margin-top: 8px; padding: 12px; background: #f7f9fc; border: 1px solid #e1e5eb; border-radius: 4px;"></pre>
+                        </details>
+                    </div>
                 </div>
                 
                 <div class="certificate-form-actions" style="margin-top: 25px; display: flex; gap: 10px; flex-wrap: wrap;">
@@ -353,6 +359,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const scanArea = document.getElementById('scanArea');
     const scanBtn = document.getElementById('scanBtn');
     const scanStatus = document.getElementById('scanStatus');
+    const rawOcrPanel = document.getElementById('rawOcrPanel');
+    const rawOcrText = document.getElementById('rawOcrText');
     
     if (icInput) {
         icInput.addEventListener('input', function() {
@@ -425,6 +433,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (fileInput) {
         fileInput.addEventListener('change', function() {
             const file = this.files[0];
+            rawOcrPanel.style.display = 'none';
+            rawOcrText.textContent = '';
             if (!file) {
                 scanArea.style.display = 'none';
                 return;
@@ -467,6 +477,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 const ext = data.extracted;
+                if (ext.raw_text) {
+                    rawOcrText.textContent = ext.raw_text;
+                    rawOcrPanel.style.display = 'block';
+                }
                 let filled = [];
                 
                 if (icInput) {
