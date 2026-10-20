@@ -26,9 +26,30 @@ $cert = $result->fetch_assoc();
 $stmt->close();
 $conn->close();
 
-// Check if actual PDF exists
-$cert_file = 'certificates/' . $cert['certificate_file'];
-$has_pdf = file_exists($cert_file) && strtolower(pathinfo($cert_file, PATHINFO_EXTENSION)) == 'pdf';
+$certificate_filename = basename((string) ($cert['certificate_file'] ?? ''));
+$certificate_path = __DIR__ . '/certificates/' . $certificate_filename;
+$browser_mime_types = [
+    'pdf' => 'application/pdf',
+    'jpg' => 'image/jpeg',
+    'jpeg' => 'image/jpeg',
+    'png' => 'image/png',
+    'gif' => 'image/gif'
+];
+$certificate_extension = strtolower(pathinfo($certificate_filename, PATHINFO_EXTENSION));
+
+if ($certificate_filename !== '' && is_file($certificate_path) && isset($browser_mime_types[$certificate_extension])) {
+    header('Content-Type: ' . $browser_mime_types[$certificate_extension]);
+    header('Content-Disposition: inline; filename="' . rawurlencode($certificate_filename) . '"');
+    header('X-Content-Type-Options: nosniff');
+    header('Cache-Control: private, no-store');
+    header('Content-Length: ' . filesize($certificate_path));
+    readfile($certificate_path);
+    exit;
+}
+
+// Keep the generated certificate as a fallback for older records without an uploaded file.
+$has_pdf = false;
+$cert_file = '';
 
 // Use serial number from database
 $cert_number = $cert['serialNum'];
