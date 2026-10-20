@@ -24,7 +24,7 @@ include 'nav.php';
         
         <!-- Warning Header -->
         <div style="background: #dc3545; color: white; padding: 15px 20px; font-size: 16px; font-weight: 600;">
-            <span class="glyphicon glyphicon-warning-sign"></span> Name Conflict Detected
+            <span class="page-info page-info-inverse" role="img" tabindex="0" aria-label="Review the conflicting name before confirming this certificate." data-tooltip="Review the conflicting name before confirming this certificate."><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span></span>
         </div>
         
         <div style="padding: 30px;">
