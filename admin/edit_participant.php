@@ -6,6 +6,7 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 }
 
 include '../db.php';
+require_once 'logger.php';
 require 'check_role.php';
 require_role('admin');   // ← Only admins can access
 
@@ -40,12 +41,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $sync->bind_param("ss", $fullName, $ic);
             $sync->execute();
             $sync->close();
+
+            log_activity($conn, 'participant', 'edit', 'success',
+                'Participant updated', $ic,
+                ['name' => $fullName, 'insider' => $insider]);
             
             $_SESSION['admin_message'] = 'Participant updated successfully!';
             $_SESSION['admin_message_type'] = 'success';
             header('Location: index.php');
             exit;
         } else {
+            log_activity($conn, 'participant', 'edit', 'failure',
+                'Participant update failed: ' . $stmt->error, $ic);
             $errors[] = 'Database error: ' . $stmt->error;
         }
         $stmt->close();
@@ -66,7 +73,7 @@ push_nav_stack();
 <div class="container" style="padding-top: 20px; max-width: 700px;">
     <div style="background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); overflow: hidden;">
         <div style="background: #1a3c5e; color: white; padding: 15px 20px; font-weight: 600;">
-            <span class="glyphicon glyphicon-edit"></span> Edit Participant
+            <span class="page-info page-info-inverse" role="img" tabindex="0" aria-label="Update participant details and classification." data-tooltip="Update participant details and classification."><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span></span>
         </div>
         <div style="padding: 25px 30px;">
             <?php if ($message): ?>
