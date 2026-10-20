@@ -63,6 +63,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
         $stmt->close();
     } else {
+        log_activity($conn, 'auth', 'login', 'warning',
+            'Login attempt rejected because credentials were incomplete',
+            $username ?: null);
         $error = 'Please enter both username and password.';
     }
 }
@@ -107,12 +110,13 @@ $conn->close();
             top: 0;
             left: 0;
             right: 0;
-            padding: 18px 40px;
+            padding: 14px 40px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             z-index: 100;
-            background: linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0) 100%);
+            background: transparent;
+            box-shadow: none;
         }
 
         .top-nav .brand {
@@ -158,15 +162,12 @@ $conn->close();
             position: relative;
             width: 100%;
             max-width: 460px;
-            background: rgba(240, 245, 252, 0.92);
-            border-radius: 14px;
-            padding: 40px 40px 32px;
-            box-shadow:
-                0 25px 60px rgba(0, 0, 0, 0.45),
-                0 0 0 1px rgba(255, 255, 255, 0.4) inset;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            color: #1a2c3e;
+            background: #ffffff;
+            border: 1px solid rgba(222, 226, 230, 0.9);
+            border-radius: 12px;
+            padding: 36px 40px 32px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+            color: #212529;
         }
 
         /* Close (X) button top-right of card */
@@ -195,14 +196,71 @@ $conn->close();
             text-decoration: none;
         }
 
-        /* Title */
-        .login-card h2 {
-            text-align: center;
-            font-size: 30px;
-            font-weight: 800;
-            color: #16283d;
-            margin: 0 0 30px 0;
-            letter-spacing: 0.3px;
+        .login-info-row {
+            display: flex;
+            justify-content: flex-end;
+            margin: 0 0 28px;
+        }
+
+        .login-info {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border: 1px solid #ced4da;
+            border-radius: 50%;
+            background: #f7f9fc;
+            color: #1a3c5e;
+            font-size: 14px;
+            cursor: help;
+            transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+        }
+
+        .login-info:hover,
+        .login-info:focus-visible {
+            background: #e8f0fe;
+            border-color: #1a3c5e;
+            transform: scale(1.06);
+            outline: none;
+        }
+
+        .admin-info-tooltip {
+            position: fixed;
+            z-index: 2147483647;
+            width: max-content;
+            max-width: min(280px, calc(100vw - 48px));
+            padding: 10px 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.16);
+            color: #212529;
+            font-size: 13px;
+            font-weight: 400;
+            line-height: 1.45;
+            text-align: left;
+            white-space: normal;
+            overflow-wrap: anywhere;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transform: translateY(-4px);
+            transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
+        }
+
+        .admin-info-tooltip.is-visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .login-info,
+            .admin-info-tooltip {
+                transition: none;
+            }
         }
 
         /* Error banner */
@@ -241,12 +299,12 @@ $conn->close();
             height: 46px;
             padding: 0 44px 0 14px; /* right space for icon */
             font-size: 14px;
-            color: #1a2c3e;
-            background: transparent;
-            border: none;
-            border-bottom: 2px solid #8fa3b8;
+            color: #212529;
+            background: #f7f9fc;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
             outline: none;
-            transition: border-color 0.2s ease;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
 
         .field-wrap input::placeholder {
@@ -254,7 +312,8 @@ $conn->close();
         }
 
         .field-wrap input:focus {
-            border-bottom-color: #1a3c5e;
+            border-color: #1a3c5e;
+            box-shadow: 0 0 0 3px rgba(26, 60, 94, 0.12);
         }
 
         /* Icon inside the field */
@@ -288,7 +347,7 @@ $conn->close();
             height: 48px;
             border: none;
             border-radius: 8px;
-            background: #16283d;
+            background: #1a3c5e;
             color: #ffffff;
             font-size: 16px;
             font-weight: 700;
@@ -298,7 +357,7 @@ $conn->close();
         }
 
         .btn-login-new:hover {
-            background: #0f1e2e;
+            background: #0f2a42;
             transform: translateY(-1px);
         }
 
@@ -330,9 +389,9 @@ $conn->close();
         @media (max-width: 640px) {
             .top-nav { padding: 14px 20px; }
             .login-card { padding: 32px 24px 26px; }
-            .login-card h2 { font-size: 26px; }
         }
     </style>
+    <script src="info_tooltip.js" defer></script>
 </head>
 <body>
 
@@ -352,7 +411,11 @@ $conn->close();
             <!-- Close (X) — goes back to public search -->
             <a href="../index.php" class="close-btn" title="Close">&times;</a>
 
-            <h2>Admin Login</h2>
+            <div class="login-info-row">
+                <span class="login-info" role="img" tabindex="0" aria-label="Sign in to manage certificates, requests, and participant records." data-tooltip="Sign in to manage certificates, requests, and participant records.">
+                    <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>
+                </span>
+            </div>
 
             <?php if ($error): ?>
                 <div class="error"><?php echo htmlspecialchars($error); ?></div>
