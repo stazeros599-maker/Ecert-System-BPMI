@@ -1,7 +1,0 @@
-services:
-  - type: web
-    name: ecert-portal-bpmi
-    env: php
-    plan: free
-    buildCommand: ""
-    startCommand: ""
